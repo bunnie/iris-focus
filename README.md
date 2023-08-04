@@ -1,4 +1,9 @@
-# Project template for rp2040-hal
+# IRIS Kinematically Coupled 3-Axis Piezo Controller
+
+This contains code for controlling the IRIS 3-axis piezo controller,
+based on an RP2040 driving a 14-bit DAC + HV driver ICs.
+
+## Previous boilerplate below
 
 This template is intended as a starting point for developing your own firmware based on the rp2040-hal.
 
