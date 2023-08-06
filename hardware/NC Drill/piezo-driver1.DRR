@@ -1,0 +1,21 @@
+----------------------------------------------------------------------------------------------------------------------------------
+NCDrill File Report For: piezo-driver1.PcbDoc   7/22/2023  01:09:59
+----------------------------------------------------------------------------------------------------------------------------------
+
+Layer Pair : Top Layer to Bottom Layer
+ASCII RoundHoles File : piezo-driver1-RoundHoles.TXT
+ASCII SlotHoles File : piezo-driver1-SlotHoles.TXT
+
+Tool       Hole Size               Hole Tolerance               Hole Type       Hole Count   Plated         Tool Travel
+----------------------------------------------------------------------------------------------------------------------------------
+T1      10mil (0.25mm)                                            Round             1         PTH        0.00inch (0.00mm)
+T2      12mil (0.3mm)                                             Round             165       PTH        17.96inch (456.27mm)
+T3      16mil (0.4mm)                                             Round             16        PTH        0.52inch (13.25mm)
+T4      24mil (0.6mm)                                             Slot              4         PTH        1.43inch (36.25mm)
+T5      35mil (0.9mm)                                             Round             10        PTH        1.69inch (43.05mm)
+T6      39mil (1mm)                                               Round             4         PTH        0.30inch (7.62mm)
+T7      102mil (2.6mm)                                            Round             3         NPTH       2.85inch (72.43mm)
+----------------------------------------------------------------------------------------------------------------------------------
+Totals                                                                              203
+
+Total Processing Time (hh:mm:ss) : 00:00:00
