@@ -114,6 +114,7 @@ fn main() -> ! {
     );
     // software reset
     write_dac(&mut spi, &mut spi_csn, &mut delay, 5, 0xA);
+    delay.delay_ms(1); // wait for reset to go through
 
     // check ID of DAC
     let id = read_dac(&mut spi, &mut spi_csn, &mut delay, 1);
@@ -146,9 +147,8 @@ fn main() -> ! {
     let mut cmdbuf = [0u8; MAX_CMD_LEN];
     let mut cmdbuf_index = 0;
     let mut last_instant = timer.get_counter();
+    let mut last_all_value = 0;
     // let mut test: u16 = 0;
-    // delay is a generally useful primitive I want to keep around. Ensure it is used at least once.
-    delay.delay_us(1); // get rid of clippy lint about this not being used
     loop {
         let this_instant = timer.get_counter();
         if this_instant.checked_duration_since(last_instant).unwrap().to_micros() > 60 {
@@ -224,10 +224,64 @@ fn main() -> ! {
                                 Some("A") => {
                                     match u16::from_str_radix(t, 10) {
                                         Ok(v) => {
-                                            write_dac(&mut spi, &mut spi_csn, &mut delay, 0x8, v << 2);
-                                            write_dac(&mut spi, &mut spi_csn, &mut delay, 0x9, v << 2);
-                                            write_dac(&mut spi, &mut spi_csn, &mut delay, 0xA, v << 2);
-                                            write_dac(&mut spi, &mut spi_csn, &mut delay, 0x5, 0b1_0000);
+                                            if v == last_all_value {
+                                                // don't do anything if there is no change
+                                                continue;
+                                            }
+
+                                            // transition between values through a number of steps, to try
+                                            // to prevent shaking the samples too much.
+                                            const TARGET_STEPS: i32 = 800;
+                                            let mut step = (v as i32 - last_all_value as i32) / TARGET_STEPS;
+                                            if step == 0 {
+                                                // make sure we at least step by 1; we'll terminate early if necessary
+                                                if v > last_all_value {
+                                                    step = 1;
+                                                } else {
+                                                    step = -1;
+                                                }
+                                            }
+                                            let mut value = last_all_value as i32 + step;
+                                            for _ in 0..TARGET_STEPS {
+                                                // check if we need to terminate
+                                                let terminate = if step > 0 {
+                                                    if value >= v as i32 {
+                                                        value = v as i32;
+                                                        true
+                                                    } else {
+                                                        false
+                                                    }
+                                                } else {
+                                                    if value <= v as i32 {
+                                                        value = v as i32;
+                                                        true
+                                                    } else {
+                                                        false
+                                                    }
+                                                };
+                                                // sanity check, because wrap-arounds would be really bad.
+                                                if value < 0 {
+                                                    value = 0;
+                                                }
+                                                write_dac(&mut spi, &mut spi_csn, &mut delay, 0x8, (value as u16) << 2);
+                                                write_dac(&mut spi, &mut spi_csn, &mut delay, 0x9, (value as u16) << 2);
+                                                write_dac(&mut spi, &mut spi_csn, &mut delay, 0xA, (value as u16) << 2);
+                                                write_dac(&mut spi, &mut spi_csn, &mut delay, 0x5, 0b1_0000);
+                                                delay.delay_us(20);
+                                                if terminate {
+                                                    break
+                                                }
+                                                value += step;
+                                            }
+                                            if value != v as i32 {
+                                                // we didn't hit the final value because of rounding. Add one more step
+                                                // to get us there.
+                                                write_dac(&mut spi, &mut spi_csn, &mut delay, 0x8, v << 2);
+                                                write_dac(&mut spi, &mut spi_csn, &mut delay, 0x9, v << 2);
+                                                write_dac(&mut spi, &mut spi_csn, &mut delay, 0xA, v << 2);
+                                                write_dac(&mut spi, &mut spi_csn, &mut delay, 0x5, 0b1_0000);
+                                            }
+                                            last_all_value = v;
                                         }
                                         _ => {
                                             uart.write_str("ARG?\n").ok();
@@ -321,7 +375,7 @@ where
     spi_csn.set_low().ok();
     let _ = spi.transfer(&mut wd).ok();
     spi_csn.set_high().ok();
-    delay.delay_ms(1);
+    delay.delay_us(1);
 }
 
 fn read_dac<S, P> (
